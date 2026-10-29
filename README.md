@@ -23,7 +23,8 @@ the server starts; you can open the application from that notification too.
 
 The page requests the sample messages from `GET /api/messages` and displays
 them. The messages are held in server memory and reset when the server restarts.
-There is no message submission feature yet; that is an exercise for students.
+Each message includes the time it was received by the server, displayed by the
+page in `YYYY-MM-DD HH:mm` format.
 
 You can also visit `http://localhost:3000/api/messages` to see the raw JSON
 response (use the forwarded port URL in Codespaces).

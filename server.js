@@ -8,9 +8,9 @@ const publicDirectory = path.join(__dirname, 'public');
 
 // These messages live in memory and reset whenever the server restarts.
 const messages = [
-  { id: 1, author: 'Aki', text: 'Hello from the KIC lecture!' },
-  { id: 2, author: 'Ren', text: 'I am learning how the frontend talks to the backend.' },
-  { id: 3, author: 'Mina', text: 'This message came from the server API.' }
+  { id: 1, author: 'Aki', text: 'Hello from the KIC lecture!', timestamp: new Date().toISOString() },
+  { id: 2, author: 'Ren', text: 'I am learning how the frontend talks to the backend.', timestamp: new Date().toISOString() },
+  { id: 3, author: 'Mina', text: 'This message came from the server API.', timestamp: new Date().toISOString() }
 ];
 
 const contentTypes = {
@@ -26,6 +26,56 @@ const server = http.createServer((request, response) => {
   if (request.method === 'GET' && requestUrl.pathname === '/api/messages') {
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
     response.end(JSON.stringify(messages));
+    return;
+  }
+
+  if (request.method === 'POST' && requestUrl.pathname === '/api/messages') {
+    let body = '';
+
+    request.on('data', (chunk) => {
+      body += chunk;
+      if (body.length > 10000) {
+        request.destroy();
+      }
+    });
+
+    request.on('end', () => {
+      let newMessage;
+
+      try {
+        newMessage = JSON.parse(body);
+      } catch {
+        response.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        response.end(JSON.stringify({ error: 'Invalid JSON.' }));
+        return;
+      }
+
+      const author = typeof newMessage.author === 'string' ? newMessage.author.trim() : '';
+      const text = typeof newMessage.text === 'string' ? newMessage.text.trim() : '';
+
+      if (!author || !text) {
+        response.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        response.end(JSON.stringify({ error: 'Name and message are required.' }));
+        return;
+      }
+
+      if (author.length > 50 || text.length > 500) {
+        response.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        response.end(JSON.stringify({ error: 'Name must be 50 characters or less and message 500 characters or less.' }));
+        return;
+      }
+
+      const message = {
+        id: messages.length ? Math.max(...messages.map(({ id }) => id)) + 1 : 1,
+        author,
+        text,
+        timestamp: new Date().toISOString()
+      };
+
+      messages.push(message);
+      response.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
+      response.end(JSON.stringify(message));
+    });
     return;
   }
 
